@@ -1,47 +1,21 @@
 class Z80(object):
-    #Registros
-    B = "0"
-    C = "0"
-    D = "0"
-    E = "0"
-    H = "0"
-    L = "0"
-    A = "0"
-    F = "0"
-    sp = "0"
-    ix = "0"
-    iy = "0"
+    # Registros son declarados como cadenas en hexadecimal
+    B = "00"
+    C = "00"
+    D = "00"
+    E = "00"
+    H = "00"
+    L = "00"
+    A = "00"
+    F = "00"
+    SP = "00"
+    IX = "00"
+    IY = "00"
 
-    #funcion para convertir un número hexadecimal a binario
-    @staticmethod
-    def toHEXtoBIN(numberInHEX):
-        numberInHEX = int(numberInHEX, 16)
-        numberInBIN = bin(numberInHEX)[2:].zfill(8)
-        return numberInBIN
-    #metodo para cambiar las banderas
-    #indices de banderas [S Z X H X P/V N C]
-    #                                    [7 6 5 4  3   2     1  0]
-    @staticmethod
-    def cambiarBanderas(bitIndex,value):
-        banderas = list(Z80.toHEXtoBIN(Z80.F)
-        origin/instrucciones
-        #print(banderas)
-        length  = len(banderas) - 1
-        if(value == banderas[length - bitIndex]):
-            return
-        if(banderas[length - bitIndex] != "0"):
-            banderas[length - bitIndex] = "0"
-        else:
-            banderas[length - bitIndex] = "1"
-        print(banderas)
-        Z80.F = hex(int("".join(banderas),2))[2:]
-
-#print(Z80.toHEXtoBIN(Z80.F))
-for i in range(8):
-    Z80.cambiarBanderas(i)
-print(Z80.F) # agregue esta linea
-for i in range(8):
-    Z80.cambiarBanderas(i)
-print(Z80.F)
-#print(int(Z80.F,16))
-#print(hex(int("1",16)+int("F",16)))
+    """ 
+        Para el cambio de banderas pueden realizar lo siguiente
+        Z80.F = Z80.F[:indice] + '1' + Z80.F[inidice:]
+        cambiando el '1' por el caso que vayan a realizar.
+        Antes deben de hacer el cambio del registro F de hexadecimal a binario
+        y usar zfill para tener 8 bits al convertir
+    """
