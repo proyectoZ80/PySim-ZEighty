@@ -86,6 +86,7 @@ class Z80(object):
 
     @staticmethod
     def EX(arg1, arg2):
+        # DE <-> HL
         if arg1 == 'DE':
             aux = Z80.D
             Z80.D = Z80.H
@@ -94,6 +95,7 @@ class Z80(object):
             Z80.E = Z80.L
             Z80.L = aux
         elif arg1 == 'AF':
+            # AF <-> A_F_
             aux = Z80.A
             Z80.A = Z80.A_
             Z80.A_ = aux
@@ -101,6 +103,7 @@ class Z80(object):
             Z80.F = Z80.F_
             Z80.F_ = aux
         else:
+            # IX <-> (SP)_o IY <-> (SP)
             if arg2 == 'IX' or arg2 == 'IY':
                 aux = getattr(Z80, arg2)
                 Z80.SP = int(Z80.SP, 16)
@@ -114,6 +117,7 @@ class Z80(object):
                 Z80.SP = hex(Z80.SP)[2:].zfill(5).upper()
 
             else:
+                # (SP) <-> HL
                 Z80.SP = int(Z80.SP, 16)
                 a = Z80.H
                 Z80.H = Memoria.mem[Z80.SP + 1]
@@ -148,3 +152,87 @@ class Z80(object):
         aux = Z80.L
         Z80.L = Z80.L_
         Z80.L_ = aux
+
+    @staticmethod
+    def LDI():
+        # (DE) <- (HL) 
+        dir1 = int(Z80.D + Z80.E, 16)
+        dir2 = int(Z80.H + Z80.L, 16)
+        Memoria.mem[dir1] = Memoria.mem[dir2]
+        # DE <- DE + 1
+        dir1 = Z80.tohex(dir1 + 1, 16)
+        Z80.D = dir1[:2]
+        Z80.E = dir1[2:]
+        # HL <- HL + 1
+        dir2 = Z80.tohex(dir2 + 1, 16)
+        Z80.H = dir2[:2]
+        Z80.L = dir2[2:]
+        # BC <- BC - 1
+        dir1 = int(Z80.B + Z80.C, 16)
+        dir1 = Z80.tohex(dir1 - 1, 16)
+        Z80.B = dir2[:2]
+        Z80.C = dir2[2:]
+
+    @staticmethod
+    def LDIR():
+        dir3 = int(Z80.B + Z80.C, 16)
+        while dir3 > 0:
+            # (DE) <- (HL) 
+            dir1 = int(Z80.D + Z80.E, 16)
+            dir2 = int(Z80.H + Z80.L, 16)
+            Memoria.mem[dir1] = Memoria.mem[dir2]
+            # DE <- DE + 1
+            dir1 = Z80.tohex(dir1 + 1, 16)
+            Z80.D = dir1[:2]
+            Z80.E = dir1[2:]
+            # HL <- HL + 1
+            dir2 = Z80.tohex(dir2 + 1, 16)
+            Z80.H = dir2[:2]
+            Z80.L = dir2[2:]
+            # BC <- BC - 1
+            dir3 = dir3 - 1
+            dir3 = Z80.tohex(dir3, 16)
+            Z80.B = dir2[:2]
+            Z80.C = dir2[2:]
+
+    @staticmethod
+    def LDD():
+        # (DE) <- (HL) 
+        dir1 = int(Z80.D + Z80.E, 16)
+        dir2 = int(Z80.H + Z80.L, 16)
+        Memoria.mem[dir1] = Memoria.mem[dir2]
+        # DE <- DE - 1
+        dir1 = Z80.tohex(dir1 - 1, 16)
+        Z80.D = dir1[:2]
+        Z80.E = dir1[2:]
+        # HL <- HL - 1
+        dir2 = Z80.tohex(dir2 - 1, 16)
+        Z80.H = dir2[:2]
+        Z80.L = dir2[2:]
+        # BC <- BC - 1
+        dir1 = int(Z80.B + Z80.C, 16)
+        dir1 = Z80.tohex(dir1 - 1, 16)
+        Z80.B = dir2[:2]
+        Z80.C = dir2[2:]
+
+    @staticmethod
+    def LDDR():
+        dir3 = int(Z80.B + Z80.C, 16)
+        while dir3 > 0:
+            # (DE) <- (HL) 
+            dir1 = int(Z80.D + Z80.E, 16)
+            dir2 = int(Z80.H + Z80.L, 16)
+            Memoria.mem[dir1] = Memoria.mem[dir2]
+            # DE <- DE - 1
+            dir1 = Z80.tohex(dir1 - 1, 16)
+            Z80.D = dir1[:2]
+            Z80.E = dir1[2:]
+            # HL <- HL - 1
+            dir2 = Z80.tohex(dir2 - 1, 16)
+            Z80.H = dir2[:2]
+            Z80.L = dir2[2:]
+            # BC <- BC - 1
+            dir3 = dir3 - 1
+            dir3 = Z80.tohex(dir3, 16)
+            Z80.B = dir2[:2]
+            Z80.C = dir2[2:]
