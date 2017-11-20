@@ -1,3 +1,5 @@
+import desensamblador
+
 class Z80(object):
     # Registros son declarados como cadenas en hexadecimal
     B = "00"
@@ -8,14 +10,25 @@ class Z80(object):
     L = "00"
     A = "00"
     F = "00"
-    SP = "00"
+    SP = "65034"
     IX = "00"
     IY = "00"
+    PC = "00"
+    IFF1 = "00"
+    IFF2 = "00"
+    I = "00"
+    R = "00"
 
-    """ 
-        Para el cambio de banderas pueden realizar lo siguiente
-        Z80.F = Z80.F[:indice] + '1' + Z80.F[inidice:]
-        cambiando el '1' por el caso que vayan a realizar.
-        Antes deben de hacer el cambio del registro F de hexadecimal a binario
-        y usar zfill para tener 8 bits al convertir
-    """
+    @staticmethod
+    def hexToBin(numHex):
+        return bin(int(numHex, 16))[2:].zfill(8)
+
+    @staticmethod
+    def binToHex(numBin):
+        return hex(int(numBin, 2))[2:].zfill(8)
+
+    @staticmethod
+    def changeFlag(bitIndex, val):
+        Z80.F = Z80.hexToBin(Z80.F)
+        Z80.F = Z80.F[:bitIndex] + val + Z80.F[bitIndex:]
+        return binToHex(Z80.F)

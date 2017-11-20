@@ -80,9 +80,8 @@ def main():
 	table = llenaDiccionario()
 	dirCarga = '0000'
 	dirEjec = '0000'
-	mem = ['--']*70 #El 70 se debe cambiar por el tamanio que tendra la memoria
+	mem = ['--']*656535	 #El 70 se debe cambiar por el tamanio que tendra la memoria
 	mem = cargaMemoria(mem, dirCarga)
-	print (mem)
 	desensamblado(mem, dirEjec, table)
 	
 main()
