@@ -103,29 +103,26 @@ class Z80(object):
             Z80.F = Z80.F_
             Z80.F_ = aux
         else:
-            # IX <-> (SP)_o IY <-> (SP)
+            # IX <-> (SP) o IY <-> (SP)
             if arg2 == 'IX' or arg2 == 'IY':
                 aux = getattr(Z80, arg2)
-                Z80.SP = int(Z80.SP, 16)
-                a = Memoria.mem[Z80.SP]
-                Memoria.mem[Z80.SP] = aux[2:]
-                aux[2:] = a
-                a = Memoria.mem[Z80.SP + 1]
-                Memoria.mem[Z80.SP] = aux[:2]
-                aux[:2] = a
+                POP(arg2)
+                aux2 = getattr(Z80, arg2)
                 setattr(Z80, arg2, aux)
-                Z80.SP = hex(Z80.SP)[2:].zfill(5).upper()
-
+                PUSH(arg2)
+                setattr(Z80, arg2, aux2)
             else:
                 # (SP) <-> HL
-                Z80.SP = int(Z80.SP, 16)
-                a = Z80.H
-                Z80.H = Memoria.mem[Z80.SP + 1]
-                Memoria.mem[Z80.SP + 1] = a
-                a = Z80.L
-                Z80.L = Memoria.mem[Z80.SP]
-                Memoria.mem[Z80.SP] = a
-                Z80.SP = hex(Z80.SP)[2:].zfill(5).upper()
+                aux1 = getattr(Z80, arg2[0])
+                aux2 = getattr(Z80, arg2[1])
+                POP(arg2)
+                aux3 = getattr(Z80, arg2[0])
+                aux4 = getattr(Z80, arg2[1])
+                setattr(Z80, arg2[0], aux1)
+                setattr(Z80, arg2[1], aux2)
+                PUSH(arg2)
+                setattr(Z80, arg2[0], aux3)
+                setattr(Z80, arg2[1], aux4)
 
     @staticmethod
     def EXX():
@@ -175,8 +172,8 @@ class Z80(object):
 
     @staticmethod
     def LDIR():
-        dir3 = int(Z80.B + Z80.C, 16)
-        while dir3 > 0:
+        c = int(Z80.B + Z80.C, 16)
+        while c != 0:
             # (DE) <- (HL) 
             dir1 = int(Z80.D + Z80.E, 16)
             dir2 = int(Z80.H + Z80.L, 16)
@@ -190,10 +187,10 @@ class Z80(object):
             Z80.H = dir2[:2]
             Z80.L = dir2[2:]
             # BC <- BC - 1
-            dir3 = dir3 - 1
-            dir3 = Z80.tohex(dir3, 16)
-            Z80.B = dir2[:2]
-            Z80.C = dir2[2:]
+            c = c - 1
+            dir3 = Z80.tohex(c, 16)
+            Z80.B = dir3[:2]
+            Z80.C = dir3[2:]
 
     @staticmethod
     def LDD():
@@ -217,8 +214,8 @@ class Z80(object):
 
     @staticmethod
     def LDDR():
-        dir3 = int(Z80.B + Z80.C, 16)
-        while dir3 > 0:
+        c = int(Z80.B + Z80.C, 16)
+        while c != 0:
             # (DE) <- (HL) 
             dir1 = int(Z80.D + Z80.E, 16)
             dir2 = int(Z80.H + Z80.L, 16)
@@ -232,7 +229,105 @@ class Z80(object):
             Z80.H = dir2[:2]
             Z80.L = dir2[2:]
             # BC <- BC - 1
-            dir3 = dir3 - 1
-            dir3 = Z80.tohex(dir3, 16)
-            Z80.B = dir2[:2]
-            Z80.C = dir2[2:]
+            c = c - 1
+            dir3 = Z80.tohex(c, 16)
+            Z80.B = dir3[:2]
+            Z80.C = dir3[2:]
+
+    @staticmethod
+    def CPI():
+        # A - (HL)
+        HL = int(Z80.H + Z80.L, 16)
+        if int(Z80.A, 16) - Memoria.mem[HL] == 0:
+            Z80.F = Z80.changeFlag(6, 1)
+        else:
+            Z80.F = Z80.changeFlag(6, 0)
+        # HL <- HL + 1
+        v = int(Z80.H + Z80.L, 16) + 1
+        v = Z80.tohex(v, 16)
+        Z80.H = v[:2]
+        Z80.L = v[2:]
+        # BC <- BC - 1
+        v = int(Z80.B + Z80.C, 16) - 1
+        if v == 0:
+            Z80.F = Z80.changeFlag(2, 0)
+        else:
+            Z80.F = Z80.changeFlag(2, 1)
+        v = Z80.tohex(v, 16)
+        Z80.B = v[:2]
+        Z80.C = v[2:]
+
+    @staticmethod
+    def CPIR():
+        c = int(Z80.B + Z80.C, 16)
+        while c != 0:
+            # A - (HL)
+            HL = int(Z80.H + Z80.L, 16)
+            if int(Z80.A, 16) - Memoria.mem[HL] == 0:
+                Z80.F = Z80.changeFlag(6, 1)
+            else:
+                Z80.F = Z80.changeFlag(6, 0)
+            # HL <- HL + 1
+            v = int(Z80.H + Z80.L, 16) + 1
+            v = Z80.tohex(v, 16)
+            Z80.H = v[:2]
+            Z80.L = v[2:]
+            # BC <- BC - 1
+            c -= 1
+            v = Z80.tohex(c, 16)
+            Z80.B = v[:2]
+            Z80.C = v[2:]
+            if c == 0:
+                Z80.F = Z80.changeFlag(2, 0)
+                break
+            else:
+                Z80.F = Z80.changeFlag(2, 1)
+
+    @staticmethod
+    def CPD():
+        # A - (HL)
+        HL = int(Z80.H + Z80.L, 16)
+        if int(Z80.A, 16) - Memoria.mem[HL] == 0:
+            Z80.F = Z80.changeFlag(6, 1)
+        else:
+            Z80.F = Z80.changeFlag(6, 0)
+        # HL <- HL - 1
+        v = int(Z80.H + Z80.L, 16) - 1
+        v = Z80.tohex(v, 16)
+        Z80.H = v[:2]
+        Z80.L = v[2:]
+        # BC <- BC - 1
+        v = int(Z80.B + Z80.C, 16) - 1
+        if v == 0:
+            Z80.F = Z80.changeFlag(2, 0)
+        else:
+            Z80.F = Z80.changeFlag(2, 1)
+        v = Z80.tohex(v, 16)
+        Z80.B = v[:2]
+        Z80.C = v[2:]
+
+    @staticmethod
+    def CPDR():
+        c = int(Z80.B + Z80.C, 16)
+        while c != 0:
+            # A - (HL)
+            HL = int(Z80.H + Z80.L, 16)
+            if int(Z80.A, 16) - Memoria.mem[HL] == 0:
+                Z80.F = Z80.changeFlag(6, 1)
+            else:
+                Z80.F = Z80.changeFlag(6, 0)
+            # HL <- HL - 1
+            v = int(Z80.H + Z80.L, 16) - 1
+            v = Z80.tohex(v, 16)
+            Z80.H = v[:2]
+            Z80.L = v[2:]
+            # BC <- BC - 1
+            c -= 1
+            v = Z80.tohex(c, 16)
+            Z80.B = v[:2]
+            Z80.C = v[2:]
+            if c == 0:
+                Z80.F = Z80.changeFlag(2, 0)
+                break
+            else:
+                Z80.F = Z80.changeFlag(2, 1)
