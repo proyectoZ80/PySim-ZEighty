@@ -26,10 +26,11 @@ class Z80(object):
     def binToHex(numBin):
         return hex(int(numBin, 2))[2:].zfill(2)
 
+    # El 7 es porque el bit 0 se encuentra en el lado derecho, mientras que la posición 0
+    # en un arreglo esta a la izquierda
     @staticmethod
     def changeFlag(bitIndex, val):
         Z80.F = Z80.hexToBin(Z80.F)
-        Z80.F = Z80.F[:bitIndex] + val + Z80.F[bitIndex+1:]
-        print("banderas "+Z80.F)
+        Z80.F = Z80.F[:7 - bitIndex] + val + Z80.F[7 - bitIndex + 1:]
         Z80.F = Z80.binToHex(Z80.F)
         return Z80.F
