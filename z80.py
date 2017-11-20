@@ -54,7 +54,7 @@ class Z80(object):
     @staticmethod
     def PUSH(arg):
         Z80.SP = int(Z80.SP, 16)
-        if Z80.SP >= 65035 and Z80.SP <= 65536:
+        if Z80.SP > 65034 and Z80.SP <= 65536:
             if arg == 'IX' or arg == 'IY':
                 arg = getattr(Z80, arg)
                 Memoria.mem[Z80.SP-1] = arg[:2]
@@ -288,6 +288,7 @@ class Z80(object):
             HL = int(Z80.H + Z80.L, 16)
             if int(Z80.A, 16) - Memoria.mem[HL] == 0:
                 Z80.F = Z80.changeFlag(6, 1)
+                break
             else:
                 Z80.F = Z80.changeFlag(6, 0)
             # HL <- HL + 1
@@ -302,7 +303,6 @@ class Z80(object):
             Z80.C = v[2:]
             if c == 0:
                 Z80.F = Z80.changeFlag(2, 0)
-                break
             else:
                 Z80.F = Z80.changeFlag(2, 1)
 
