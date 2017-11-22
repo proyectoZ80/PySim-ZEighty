@@ -1,7 +1,6 @@
-from z80 import Z80
+#from z80 import Z80
 
-Z80.PUSH('IX')
-Z80.POP('DE')
+F = "FE"
+CY = bin(int(F,16))[2:].zfill(8)[0]
 
-print(getattr(Z80, 'D'))
-print(getattr(Z80, 'E'))
+print(CY)
