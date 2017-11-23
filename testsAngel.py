@@ -1,5 +1,5 @@
 from z80 import Z80
 from memoria import Memoria
+import funciones
 
-Z80.PUSH('IX')
-print(Memoria.mem)
+Z80.EX('AF', 'AF\'')

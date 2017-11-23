@@ -4,17 +4,17 @@ import memoria
 
 class Z80(object):
     # Registros son declarados como cadenas en hexadecimal
-    B = "00"
+    B = "DE"
     C = "02"
     D = "FF"
     E = "FE"
     H = "FF"
-    L = "FC"
+    L = "FD"
     A = "00"
     F = "00"
     SP = "10000" # El apuntador de pila inicia en la localidad 65536
-    IX = "1234"
-    IY = "2540"
+    IX = "0000 "
+    IY = "1224"
     PC = "00"
     IFF1 = "1"
     IFF2 = "1"
@@ -149,13 +149,18 @@ class Z80(object):
 
     @staticmethod
     def obtenerCont(op2):
-        if op2.find('H)') != -1:
+        if op2.find('IX+') or op2.find('IX+'):
+            op2 = op2.replace("(","").replace(")","").replace("H","").split("+")
+            reg = getattr(Z80, op2[0])
+            des = op2[1]
+            s = funciones.tohex(int(reg, 16) + funciones.hextodec(des), 16)
+            cont = Z80.mem.obtenerContenido(s)
+        elif op2.find('H)') != -1:
             op2 = op2.replace('(', '').replace(')', '').replace('H', '')
-            op2 = int(op2, 16)
-            cont = cont = Z80.mem.obtenerContenido(d)
+            cont = Z80.mem.obtenerContenido(op2)
         else:
             d = int(getattr(Z80, op2[0]) + getattr(Z80, op2[1]), 16)
-            cont = Z80.mem.obtenerContenido(d)
+            cont = Z80.mem.obtenerContenido(op2)
         return cont
 
     @staticmethod
@@ -164,36 +169,31 @@ class Z80(object):
             op1 = op1.replace("(","").replace(")","").replace("H","").split("+")
             reg = getattr(Z80, op1[0])
             des = op1[1]
-            pos = reg + funciones.hextodec(des)
+            pos = funciones.tohex(int(reg, 16) + funciones.hextodec(des), 16)
         # Si es la direccion que contiene HL, se obtiene su contenido
         elif (op1 == "(HL)" or op1 == "(BC)" or op1 == "(DE)"):
-            pos = int(''.join([getattr(Z80,"H"), getattr(Z80,"L")]), 16)
+            op1 = op1.replace('(','').replace(')','')
+            pos = getattr(Z80, op1[0]) + getattr(Z80, op1[1])
         # El ultimo caso es que sea un numero en hexadecimal
         else:
             pos = op1.replace('(','').replace(')','').replace('H','')
-            pos = int(pos, 16)
         return pos
 
     @staticmethod
     def LD(op1, op2):
-        if len(arg1) == 1:
+        if len(op1) == 1:
             if op2.find('C)') != -1 or op2.find('E)') != -1 or op2.find('H)') != -1:
                 cont  = Z80.obtenerCont(op2)
                 Z80.A = cont
             else:
                 s = Z80.obtenerS(op2)
                 setattr(Z80, op1, s)
-                if op2 == 'I' or op2 == 'R':
-                    Z80.zero(int(s))
-                    Z80.changeFlag(2, Z80.IFF1)
-                    Z80.changeFlag(1, '0')
-                    Z80.changeFlag(4, '0')
 
         else:
             if op1.find('(') != -1 and len(op2) == 1:
                 pos = Z80.obtenerPosicion(op1)
                 s = getattr(Z80, op2)
-                Z80.mem.cambiarContenido(s, pos)
+                Z80.mem.cambiarContenido(s, hex(pos)[2:])
             elif op1.find('(') != -1 and op2.find('H') != 1:
                 pos = Z80.obtenerPosicion(op1)
                 op2 = op2.replace('H','')
@@ -207,7 +207,7 @@ class Z80(object):
                 ss = Z80.obtenerSS(op2)
                 setattr(Z80, op1, ss)
             else:
-                if op1 == 'IX' or op1 == 'IY' or op1 == 'SP':
+                if op1 == 'IX' or op1 == 'IY':
                     if op2.find('('):
                         pos = Z80.obtenerPosicion(op2)
                         a1 = Z80.mem.obtenerContenido(pos)
@@ -235,15 +235,15 @@ class Z80(object):
         if Z80.SP >= 65034 and Z80.SP <= 65536:
             if arg == 'IX' or arg == 'IY':
                 arg = getattr(Z80, arg)
-                Z80.mem.cambiarContenido(arg[:2], Z80.SP - 1)
-                Z80.mem.cambiarContenido(arg[2:], Z80.SP - 2)
-                Z80.SP = Z80.tohex(Z80.SP - 2, 16)
+                Z80.mem.cambiarContenido(arg[:2], hex(Z80.SP - 1)[2:])
+                Z80.mem.cambiarContenido(arg[2:], hex(Z80.SP - 2)[2:])
+                Z80.SP = funciones.tohex(Z80.SP - 2, 16)
             else:
                 qL = getattr(Z80, arg[1])
                 qH = getattr(Z80, arg[0])
-                Z80.mem.cambiarContenido(qH, Z80.SP - 1)
-                Z80.mem.cambiarContenido(qL, Z80.SP - 2)
-                Z80.SP = Z80.tohex(Z80.SP - 2, 16)
+                Z80.mem.cambiarContenido(qH, hex(Z80.SP - 1)[2:])
+                Z80.mem.cambiarContenido(qL, hex(Z80.SP - 2)[2:])
+                Z80.SP = funciones.tohex(Z80.SP - 2, 16)
         else: print('ERROR: Memoria llena')
 
     @staticmethod
@@ -251,25 +251,27 @@ class Z80(object):
         Z80.SP = int(Z80.SP, 16)
         if Z80.SP >= 65034 and Z80.SP < 65536:
             if arg == 'IX':
-                Z80.IX = Z80.mem.obtenerContenido(Z80.SP + 1) + Z80.mem.obtenerContenido(Z80.SP)
+                Z80.IX = Z80.mem.obtenerContenido(hex(Z80.SP + 1)[2:]) + Z80.mem.obtenerContenido(hex(Z80.SP)[2:])
                 Z80.SP = hex(Z80.SP + 2)[2:].zfill(5).upper()
             elif arg == 'IY':
-                Z80.IY = Z80.mem.obtenerContenido(Z80.SP + 1) + Z80.mem.obtenerContenido(Z80.SP)
+                Z80.IY = Z80.mem.obtenerContenido(hex(Z80.SP + 1)[2:]) + Z80.mem.obtenerContenido(hex(Z80.SP)[2:])
                 Z80.SP = hex(Z80.SP + 2)[2:].zfill(5).upper()
             else:
-                setattr(Z80, arg[0], Z80.mem.obtenerContenido(Z80.SP + 1))
-                setattr(Z80, arg[1], Z80.mem.obtenerContenido(Z80.SP))
+                setattr(Z80, arg[0], Z80.mem.obtenerContenido(hex(Z80.SP + 1)[2:]))
+                setattr(Z80, arg[1], Z80.mem.obtenerContenido(hex(Z80.SP)[2:]))
                 Z80.SP = hex(Z80.SP + 2)[2:].zfill(5).upper()
         else: print('ERROR: Memoria Vacía')
 
     @staticmethod
     def intercambio(arg1, arg2):
+        if arg2.rfind('\'') != -1:
+            arg2 = arg2.replace('\'', '')
         aux = getattr(Z80, arg1[0])
-        setattr(Z80, arg1[0], arg2[0])
+        setattr(Z80, arg1[0], getattr(Z80, arg2[0]))
         setattr(Z80, arg2[0], aux)
 
         aux = getattr(Z80, arg1[1])
-        setattr(Z80, arg1[1], arg2[1])
+        setattr(Z80, arg1[1], getattr(Z80, arg2[1]))
         setattr(Z80, arg2[1], aux)
 
     @staticmethod
@@ -314,16 +316,16 @@ class Z80(object):
         # (DE) <- (HL)
         dir1 = int(Z80.D + Z80.E, 16)
         dir2 = int(Z80.H + Z80.L, 16)
-        con = Z80.mem.obtenerContenido(dir2)
-        Z80.mem.cambiarContenido(c, dir1)
+        con = Z80.mem.obtenerContenido(hex(dir2)[2:])
+        Z80.mem.cambiarContenido(con, hex(dir1)[2:])
         # DE <- DE + 1 o DE <- DE - 1
         dir1 = eval(str(dir1) + sign + '1')
-        dir1 = Z80.tohex(dir1, 16)
+        dir1 = funciones.tohex(dir1, 16)
         Z80.D = dir1[:2]
         Z80.E = dir1[2:]
         # HL <- HL + 1 o  HL <- HL - 1
         dir2 = eval(str(dir2) + sign + '1')
-        dir2 = Z80.tohex(dir2, 16)
+        dir2 = funciones.tohex(dir2, 16)
         Z80.H = dir2[:2]
         Z80.L = dir2[2:]
         # BC <- BC - 1
@@ -332,7 +334,7 @@ class Z80(object):
             Z80.changeFlag(2, '0')
         else:
             Z80.changeFlag(2, '1')
-        dir1 = Z80.tohex(dir1, 16)
+        dir1 = funciones.tohex(dir1, 16)
         Z80.B = dir1[:2]
         Z80.C = dir1[2:]
 
@@ -367,106 +369,62 @@ class Z80(object):
             c -= 1
 
     @staticmethod
-    def comparacion(sign):
-        pass
-
-    @staticmethod
-    def CPI():
-        # A - (HL)
-        HL = int(Z80.H + Z80.L, 16)
-        if int(Z80.A, 16) - Memoria.mem[HL] == 0:
-            Z80.F = Z80.changeFlag(6, 1)
-        else:
-            Z80.F = Z80.changeFlag(6, 0)
-        # HL <- HL + 1
-        v = int(Z80.H + Z80.L, 16) + 1
-        v = Z80.tohex(v, 16)
-        Z80.H = v[:2]
-        Z80.L = v[2:]
+    def busqueda(o):
         # BC <- BC - 1
         v = int(Z80.B + Z80.C, 16) - 1
         if v == 0:
-            Z80.F = Z80.changeFlag(2, 0)
+            Z80.changeFlag(2, '0')
         else:
-            Z80.F = Z80.changeFlag(2, 1)
-        v = Z80.tohex(v, 16)
+            Z80.changeFlag(2, '1')
+        v = funciones.tohex(v, 16)
         Z80.B = v[:2]
         Z80.C = v[2:]
+        # HL <- HL + 1 o HL <- HL - 1
+        HL = Z80.H + Z80.L
+        v = eval(str(int(HL, 16)) + o + '1')
+        v = funciones.tohex(v, 16)
+        Z80.H = v[:2]
+        Z80.L = v[2:]
+        # A - (HL)
+        cont = Z80.mem.obtenerContenido(HL)
+        Z80.halfCarry(Z80.A, cont, '-')
+        Z80.changeFlag(1, '1')
+        cont = int(Z80.A, 16) - int(cont, 16)
+        Z80.sign(cont)
+        if Z80.A == Z80.mem.obtenerContenido(HL):
+            Z80.changeFlag(6, '1')
+            return False
+        else:
+            Z80.changeFlag(6, '0')
+            return True
+
+    @staticmethod
+    def CPI():
+        Z80.busqueda('+')
 
     @staticmethod
     def CPIR():
         c = int(Z80.B + Z80.C, 16)
         while c != 0:
-            # A - (HL)
-            HL = int(Z80.H + Z80.L, 16)
-            if int(Z80.A, 16) - Memoria.mem[HL] == 0:
-                Z80.F = Z80.changeFlag(6, 1)
+            b = Z80.busqueda('+')
+            if b == False:
                 break
             else:
-                Z80.F = Z80.changeFlag(6, 0)
-            # HL <- HL + 1
-            v = int(Z80.H + Z80.L, 16) + 1
-            v = Z80.tohex(v, 16)
-            Z80.H = v[:2]
-            Z80.L = v[2:]
-            # BC <- BC - 1
-            c -= 1
-            v = Z80.tohex(c, 16)
-            Z80.B = v[:2]
-            Z80.C = v[2:]
-            if c == 0:
-                Z80.F = Z80.changeFlag(2, 0)
-            else:
-                Z80.F = Z80.changeFlag(2, 1)
+                c -= 1
 
     @staticmethod
     def CPD():
-        # A - (HL)
-        HL = int(Z80.H + Z80.L, 16)
-        if int(Z80.A, 16) - Memoria.mem[HL] == 0:
-            Z80.F = Z80.changeFlag(6, 1)
-        else:
-            Z80.F = Z80.changeFlag(6, 0)
-        # HL <- HL - 1
-        v = int(Z80.H + Z80.L, 16) - 1
-        v = Z80.tohex(v, 16)
-        Z80.H = v[:2]
-        Z80.L = v[2:]
-        # BC <- BC - 1
-        v = int(Z80.B + Z80.C, 16) - 1
-        if v == 0:
-            Z80.F = Z80.changeFlag(2, 0)
-        else:
-            Z80.F = Z80.changeFlag(2, 1)
-        v = Z80.tohex(v, 16)
-        Z80.B = v[:2]
-        Z80.C = v[2:]
+        Z80.busqueda('-')
 
     @staticmethod
     def CPDR():
         c = int(Z80.B + Z80.C, 16)
         while c != 0:
-            # A - (HL)
-            HL = int(Z80.H + Z80.L, 16)
-            if int(Z80.A, 16) - Memoria.mem[HL] == 0:
-                Z80.F = Z80.changeFlag(6, 1)
-            else:
-                Z80.F = Z80.changeFlag(6, 0)
-            # HL <- HL - 1
-            v = int(Z80.H + Z80.L, 16) - 1
-            v = Z80.tohex(v, 16)
-            Z80.H = v[:2]
-            Z80.L = v[2:]
-            # BC <- BC - 1
-            c -= 1
-            v = Z80.tohex(c, 16)
-            Z80.B = v[:2]
-            Z80.C = v[2:]
-            if c == 0:
-                Z80.F = Z80.changeFlag(2, 0)
+            b = Z80.busqueda('-')
+            if b == False:
                 break
             else:
-                Z80.F = Z80.changeFlag(2, 1)
+                c -= 1
 
     @staticmethod
     def ADD(op1, op2):
@@ -479,7 +437,7 @@ class Z80(object):
             Z80.overflow(s)
             Z80.sign(s)
             Z80.changeFlag(1,'0')
-            Z80.A = funciones.tohex(s)
+            Z80.A = funciones.tohex(s, 8)
         elif op1 == 'IX' or op1 == 'IY':
             s = int(getattr(Z80, op1), 16) + int(Z80.obtenerSS(op2), 16)
             Z80.carry(s)

@@ -1,6 +1,6 @@
 class Memoria:
 
-	mem = ['--']*65536
+	mem = ['00']*65536
 
 	""" Metodo para obtener el contenido de una localidad de memoria
 	dada en HEXADECIMAL """
