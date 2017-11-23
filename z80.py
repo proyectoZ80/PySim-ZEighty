@@ -62,7 +62,9 @@ class Z80(object):
     # Mandar en decimal el resultado para checar acarreo
     @staticmethod
     def carry(res):
-        res = bin(res)[]2:
+        res = funciones.tobin(res, 16)
+        pos = res.find('1')
+        res = res[pos:]
         if (len(res) > 8):
             Z80.changeFlag(0,'1')
         else:
@@ -189,7 +191,7 @@ class Z80(object):
 
         else:
             if op1.find('(') != -1 and len(op2) == 1:
-                pos = Z80.obtenerPosicion(op1):
+                pos = Z80.obtenerPosicion(op1)
                 s = getattr(Z80, op2)
                 Z80.mem.cambiarContenido(s, pos)
             elif op1.find('(') != -1 and op2.find('H') != 1:
