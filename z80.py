@@ -70,9 +70,28 @@ class Z80(object):
             ss = ''.join([getattr(Z80,op2[0]), getattr(Z80,op2[1])])
         return ss
 
-    """@staticmethod
-    def LD(arg1, arg2):
-        if arg1.find('('):"""
+    @staticmethod
+    def obtenerCont(op2):
+        if op2.find('H)') != -1:
+            op2 = op2.replace('(', '').replace(')', '').replace('H', '')
+            op2 = int(op2, 16)
+            cont = cont = Z80.mem.obtenerContenido(d)
+        else:
+            d = int(getattr(Z80, op2[0]) + getattr(Z80, op2[1]), 16)
+            cont = Z80.mem.obtenerContenido(d)
+        return cont
+
+    @staticmethod
+    def LD(op1, op2):
+        if len(arg1) == 1:
+            if op2.find('C)') != -1 or op2.find('E)') != -1 or op2.find('H)') != -1:
+                cont  = Z80.obtenerCont(op2)
+                Z80.A = cont
+            else:
+                s = Z80.obtenerS(op2)
+                setattr(Z80, op1, s)
+        else:
+            pass
 
     @staticmethod
     def PUSH(arg):
@@ -153,113 +172,54 @@ class Z80(object):
         
         # HL <-> H_L_
         Z80.intercambio('HL', ['H_', 'L_'])
-        
+
     @staticmethod
-    def LDI():
-        Z80.F = Z80.changeFlag(1, '0')
-        Z80.F = Z80.changeFlag(4, '0')
-        # (DE) <- (HL) 
+    def transferencia(sign):
+        # (DE) <- (HL)
         dir1 = int(Z80.D + Z80.E, 16)
         dir2 = int(Z80.H + Z80.L, 16)
-        Memoria.mem[dir1] = Memoria.mem[dir2]
-        # DE <- DE + 1
-        dir1 = Z80.tohex(dir1 + 1, 16)
+        con = Z80.mem.obtenerContenido(dir2)
+        Z80.mem.cambiarContenido(c, dir1)
+        # DE <- DE + 1 o DE <- DE - 1
+        dir1 = eval(str(dir1) + sign + '1')
+        dir1 = Z80.tohex(dir1, 16)
         Z80.D = dir1[:2]
         Z80.E = dir1[2:]
-        # HL <- HL + 1
-        dir2 = Z80.tohex(dir2 + 1, 16)
+        # HL <- HL + 1 o  HL <- HL - 1
+        dir2 = eval(str(dir2) + sign + '1')
+        dir2 = Z80.tohex(dir2, 16)
         Z80.H = dir2[:2]
         Z80.L = dir2[2:]
         # BC <- BC - 1
         dir1 = int(Z80.B + Z80.C, 16) - 1
-        if dir1 == 0:
-            Z80.F = Z80.changeFlag(2, '0')
-            dir1 = Z80.tohex(dir1, 16)
-            Z80.B = dir1[:2]
-            Z80.C = dir1[2:]
-        else:
-            Z80.F = Z80.changeFlag(2, '1')
-            dir1 = Z80.tohex(dir1, 16)
-            Z80.B = dir1[:2]
-            Z80.C = dir1[2:]
+        dir1 = Z80.tohex(dir1, 16)
+        Z80.B = dir1[:2]
+        Z80.C = dir1[2:]
+
+    @staticmethod
+    def LDI():
+        Z80.transferencia('+')
+
     @staticmethod
     def LDIR():
         c = int(Z80.B + Z80.C, 16)
         while c != 0:
-            # (DE) <- (HL) 
-            dir1 = int(Z80.D + Z80.E, 16)
-            dir2 = int(Z80.H + Z80.L, 16)
-            Memoria.mem[dir1] = Memoria.mem[dir2]
-            # DE <- DE + 1
-            dir1 = Z80.tohex(dir1 + 1, 16)
-            Z80.D = dir1[:2]
-            Z80.E = dir1[2:]
-            # HL <- HL + 1
-            dir2 = Z80.tohex(dir2 + 1, 16)
-            Z80.H = dir2[:2]
-            Z80.L = dir2[2:]
-            # BC <- BC - 1
-            c = c - 1
-            dir3 = Z80.tohex(c, 16)
-            Z80.B = dir3[:2]
-            Z80.C = dir3[2:]
-        Z80.F = Z80.changeFlag(1, '0')
-        Z80.F = Z80.changeFlag(4, '0')
-        Z80.F = Z80.changeFlag(2, '0')
+            Z80.transferencia('+')
+            c -= 1
 
     @staticmethod
     def LDD():
-        Z80.F = Z80.changeFlag(1, '0')
-        Z80.F = Z80.changeFlag(4, '0')
-        # (DE) <- (HL) 
-        dir1 = int(Z80.D + Z80.E, 16)
-        dir2 = int(Z80.H + Z80.L, 16)
-        Memoria.mem[dir1] = Memoria.mem[dir2]
-        # DE <- DE - 1
-        dir1 = Z80.tohex(dir1 - 1, 16)
-        Z80.D = dir1[:2]
-        Z80.E = dir1[2:]
-        # HL <- HL - 1
-        dir2 = Z80.tohex(dir2 - 1, 16)
-        Z80.H = dir2[:2]
-        Z80.L = dir2[2:]
-        # BC <- BC - 1
-        dir1 = int(Z80.B + Z80.C, 16) - 1
-        if dir == 0:
-            Z80.F = Z80.changeFlag(2, '0')
-            dir1 = Z80.tohex(dir1, 16)
-            Z80.B = dir1[:2]
-            Z80.C = dir1[2:]
-        else:
-            Z80.F = Z80.changeFlag(2, '1')
-            dir1 = Z80.tohex(dir1, 16)
-            Z80.B = dir1[:2]
-            Z80.C = dir1[2:]
+        Z80.transferencia('-')
 
     @staticmethod
     def LDDR():
         c = int(Z80.B + Z80.C, 16)
         while c != 0:
-            # (DE) <- (HL) 
-            dir1 = int(Z80.D + Z80.E, 16)
-            dir2 = int(Z80.H + Z80.L, 16)
-            Memoria.mem[dir1] = Memoria.mem[dir2]
-            # DE <- DE - 1
-            dir1 = Z80.tohex(dir1 - 1, 16)
-            Z80.D = dir1[:2]
-            Z80.E = dir1[2:]
-            # HL <- HL - 1
-            dir2 = Z80.tohex(dir2 - 1, 16)
-            Z80.H = dir2[:2]
-            Z80.L = dir2[2:]
-            # BC <- BC - 1
-            c = c - 1
-            dir3 = Z80.tohex(c, 16)
-            Z80.B = dir3[:2]
-            Z80.C = dir3[2:]
-        Z80.F = Z80.changeFlag(1, '0')
-        Z80.F = Z80.changeFlag(4, '0')
-        Z80.F = Z80.changeFlag(2, '0')
+            Z80.transferencia('-')
+
+    @staticmethod
+    def comparacion(sign):
+        pass
 
     @staticmethod
     def CPI():
@@ -391,4 +351,4 @@ class Z80(object):
     @staticmethod
     def SUB(op1, op2):
         s = Z80.obtenerS(op2)
-        Z80.A = funciones.tohex(int(Z80.A, 16) + int(s, 16))
+        Z80.A = funciones.tohex(int(Z80.A, 16) - int(s, 16))
