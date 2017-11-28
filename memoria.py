@@ -1,3 +1,4 @@
+import funciones
 class Memoria(object):
 	
 	mem = ['00']*65536
@@ -15,7 +16,8 @@ class Memoria(object):
 	def cambiarContenido(contenido, localidad):
 		localidad = int(localidad, 16)
 		Memoria.mem[localidad] = contenido
-		return
+		localidad = funciones.tohex(localidad, 16) 
+		return {localidad: contenido}
 	
 	@staticmethod
 	def limpiarMemoria(inicio, fin):

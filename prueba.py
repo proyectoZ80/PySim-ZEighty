@@ -12,7 +12,7 @@ def llenaDiccionario():
 	
 # Funcion para cargar el contenido del archivo en la memoria
 def cargaMemoria(mem, dirCarga):
-	code = open('P1.txt', 'r')
+	code = open('POP.HEX', 'r')
 	for line in code.readlines():
 		line = line.replace(':','').replace("\n", "")
 		# El desensamble termina al encontrar la ultima linea del codigo objeto
@@ -95,9 +95,11 @@ def ejecutar(procesador, dirEjec):
 	if inst[0] != "HALT":
 		procesador.PC = act[2]
 		if (len(inst) == 1):
+			print(bin(int(procesador.F,16)))
 			procesador.callMethod(procesador, inst[0], "")
 			print("FIN"+" "+procesador.PC)
 		else:
+			print(bin(int(procesador.F,16)))
 			procesador.callMethod(procesador, inst[0], inst[1])
 			print("FIN"+" "+procesador.PC)
 		ejecutar(procesador, procesador.PC)
@@ -106,6 +108,17 @@ def ejecutar(procesador, dirEjec):
 tabla = llenaDiccionario()
 cargaMemoria(Z80.mem, "0000")
 Z80.PC = "0000"
-dict = desensamblado(Z80.mem, "0000", "0024",tabla)
+dict = desensamblado(Z80.mem, "0000", "0012",tabla)
 print(dict)
+Z80.mem.cambiarContenido('03','1000')
+Z80.mem.cambiarContenido('0A','1001')
+print("valor de IX: " + Z80.IX)
+print("valor de IY: " + Z80.IY)
 ejecutar(Z80, "0000")
+#print('Resultado: '+Z80.A)
+print("valor de FFFF: " + Z80.mem.obtenerContenido('FFFF'))
+print("valor de FFFE: " + Z80.mem.obtenerContenido('FFFE'))
+print("valor de FFFD: " + Z80.mem.obtenerContenido('FFFD'))
+print("valor de FFFC: " + Z80.mem.obtenerContenido('FFFC'))
+print("valor de IX: " + Z80.IX)
+print("valor de IY: " + Z80.IY)
