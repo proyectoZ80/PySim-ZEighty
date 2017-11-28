@@ -27,6 +27,7 @@ class App(QWidget):
 		self.setWindowTitle(self.title)
 		self.setGeometry(self.left, self.top, self.width, self.height)
 
+		self.llenaDiccionario()
 		self.createTable()
 		self.crearLista()
 		self.crearListaDeRegistros()
@@ -34,15 +35,27 @@ class App(QWidget):
 		button = QPushButton('Trazo', self)
 		button.pressed.connect(self.prueba)
 
-		button3 = QPushButton('Salir Paso a Paso', self)
+		#creamos
 		self.button2 = QPushButton('Paso a Paso', self)
-		"""self.button2.pressed.connect(self.asignarPC)"""
+		self.button2.pressed.connect(self.PonerPasoPaso)
+
+		#Dirección de Ejecución
+		containerAdress = QWidget()
+		self.textbox = QLineEdit(self)
+		self.textbox.setInputMask(">HHHH")
+		self.textbox.setText("0000")
+		addressLabel = QLabel()
+		addressLabel.setText("Dir. Ejecución")
+		self.box1 = QBoxLayout(2)
+		self.box1.addWidget(addressLabel)
+		self.box1.addWidget(self.textbox)
+		containerAdress.setLayout(self.box1)
 
 		container = QWidget()
-		ly = QBoxLayout(0)
-		ly.addWidget(button)
-		ly.addWidget(self.button2)
-		container.setLayout(ly)
+		self.ly = QBoxLayout(0)
+		self.ly.addWidget(button)
+		self.ly.addWidget(self.button2)
+		container.setLayout(self.ly)
 
 		win = QWidget()
 		area = QScrollArea()
@@ -83,14 +96,29 @@ class App(QWidget):
 		GRIDPRINCIPAL.addWidget(container, 2, 0)
 		GRIDPRINCIPAL.addWidget(contenedor, 3, 0)
 		GRIDPRINCIPAL.addWidget(area, 0, 1)
-		self.setLayout(GRIDPRINCIPAL)
+		GRIDPRINCIPAL.addWidget(containerAdress,2,1)
 
+		self.textbox.textEdited.connect(self.asignarPC)
+		#self.textbox.editingFinished.connect(self.asignarPC)
+		self.setLayout(GRIDPRINCIPAL)
 		self.show()
+
+	def PonerPasoPaso(self):
+		button3 = QPushButton('Salir Paso a Paso', self)
+		self.button2.setText("Siguiente Intrucción")
+		self.button2.pressed.connect(self.desensambladoPasoAPaso(self.table))
+		self.ly.addWidget(button3)
+		self.button3.presed.connect(self.salirPasoPaso)
+
 
 	def crearListaDeRegistros(self):
 		self.win2 = QWidget()
 
 		self.registros1 = []
+
+
+
+
 		vbox = QGridLayout()
 		x = 0
 		registros = ["B","C","D","E","H","L","A","F","SP","IX","IY","PC","IFF1","IFF2","I","R","C\'","D\'","E\'","H\'","L\'","A\'"]
@@ -165,13 +193,26 @@ class App(QWidget):
 				key_colum_int = currentQTableWidgetItem.column()
 				key_row = hex(currentQTableWidgetItem.row())[2:]
 				key_column = hex(currentQTableWidgetItem.column())[2:]
-					
+
 				key = key_row + key_column
 				content = currentQTableWidgetItem.text()
-				
+
 				App.ChangedPositions[int(key,16)] = content
 				content = content.upper()
 			z.mem.cambiarContenido(content, key)
+
+	@pyqtSlot()
+	def asignarPC(self):
+		val = self.textbox.text()
+		if len(val) == 4:
+			z.PC = val
+
+		print(z.PC)
+
+	#@pyqtSlot()
+	#def asignarPC(self):
+	#	z.PC = self.textbox.text()
+	#	print(z.PC)
 
 	def prueba(self):
 		self.llenaDiccionario()
@@ -184,6 +225,11 @@ class App(QWidget):
 		for line in file.readlines():
 			line = line.replace('\n','').split('|')
 			self.table[line[1]] = line[0].split(':')
+
+	def salirPasoPaso(self,):
+		self.button2.setText("Paso a Paso")
+		self.button2.pressed.connect(self.PonerPasoPaso)
+
 
 # Funcion para cargar el contenido del archivo en la memoria
 	def cargaMemoria(self, dirCarga):
@@ -268,8 +314,7 @@ class App(QWidget):
 
 	def desensambladoPasoAPaso(self, table):
 		inst = ""
-		z.PC = dirEjec
-		j = int(dirEjec,16)
+		j = int(z.PC,16)
 		act = ''
 		act += z.mem.obtenerContenido(funciones.tohex(j,8))
 		j += 1
@@ -332,7 +377,7 @@ class App(QWidget):
 
 		for i in range(len(self.registros1)):
 			self.registros1[i].setText(registros[i].replace("_","\'") + " = "+getattr(z,registros[i]))
-		
+
 		return
 
 	def addPila(self):
