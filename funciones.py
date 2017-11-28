@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 # Funcion que convierte un numero decimal a hexadecimal
+=======
+>>>>>>> Angel
 def tohex(num, nbits):
 	return hex((num + (1 << nbits)) % (1 << nbits))[2:].upper().zfill(int(nbits/4))
 
@@ -14,6 +17,7 @@ def hextodec(num):
 def compDos(N):
   n = len(bin(N)[2:])
   c = hex((2 ** n) - N)[2:].zfill(2)
+<<<<<<< HEAD
   return c[len(c)-2:].upper()
 
 # Funcion para llenar el diccionario con las instrucciones de la tabla
@@ -87,3 +91,6 @@ def desensamblado(mem, dirEjec, table):
 					else: inst = inst.replace('W', act+'H')
 			print (hex(j-long)[2:].zfill(4).upper(), inst)
 			act = ''
+=======
+  return c[len(c)-2:].upper()
+>>>>>>> Angel
