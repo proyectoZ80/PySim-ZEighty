@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QItemDelegate,QLabel, QScrollArea,QGridLayout, QMainWindow, QApplication, QWidget, QAction, QTableWidget, QTableWidgetItem, QVBoxLayout, QPushButton, QListWidget, QBoxLayout,QLineEdit
+from PyQt5.QtWidgets import  QDesktopWidget, QMenuBar,QItemDelegate,QLabel, QScrollArea,QGridLayout, QMainWindow, QApplication, QWidget, QAction, QTableWidget, QTableWidgetItem, QVBoxLayout, QPushButton , QMessageBox, QListWidget, QBoxLayout,QLineEdit,QFileDialog,QFrame
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import pyqtSlot
 from Z80 import Z80 as z
@@ -11,11 +11,64 @@ class HexDelegate(QItemDelegate):
 		w.setInputMask(">HH")
 		return w
 
+class ventanaPrincipal(QMainWindow):
+	def __init__(self, parent = None):
+		super().__init__(parent)
+		self.mainWidget = App(self)
+		self.mainWidget.llenaDiccionario()
+		self.setCentralWidget(self.mainWidget)
+		self.setGeometry(0,0,1200,3000)
+		self.setFixedSize(1200,600)
+		menubar = QMenuBar()
+		fileMenu = menubar.addMenu('Opciones')
+		impMenu = QAction('Cargar Archivo',self)
+		impAct = QAction('Acerca de...',self)
+		fileMenu.addAction(impMenu)
+		fileMenu.addAction(impAct)
+		#fileMenu.triggered[impMenu].connect(abrirVentana)
+		impMenu.triggered.connect(self.abrirVentana)
+		self.setMenuBar(menubar)
+		qtRectangle = self.frameGeometry()
+		centerPoint = QDesktopWidget().availableGeometry().center()
+		qtRectangle.moveCenter(centerPoint)
+		self.move(qtRectangle.topLeft())
+
+	def abrirVentana(self):
+		self.vencar2 = QMainWindow()
+		self.vencar2.setWindowTitle("Direccion carga")
+		buttonY  = QPushButton('Ok')
+		labelY = QLabel()
+		labelY.setText('Direccion de Carga: ')
+		self.cajaY = QLineEdit()
+		widY = QWidget()
+		self.cajaY.setText("0000")
+		self.cajaY.alignment()
+		self.cajaY.setInputMask(">HHHH")
+		layY = QBoxLayout(3)
+		layY.addWidget(buttonY)
+		layY.addWidget(self.cajaY)
+		layY.addWidget(labelY)
+		widY.setLayout(layY)
+		self.vencar2.setCentralWidget(widY)
+		buttonY.pressed.connect(self.obtenArchivo)
+		self.vencar2.show()
+
+	def obtenArchivo(self):
+		self.vencar2.close()
+		dircarga = self.cajaY.text()
+		print(dircarga)
+		options = QFileDialog.Options()
+		options |= QFileDialog.DontUseNativeDialog
+		files, _=QFileDialog.getOpenFileNames(self,"QFileDialog.getOpenFileName()","","hex (*.HEX)",options = options)
+		self.mainWidget.cargaMemoria(dircarga, files[0])
+		self.mainWidget.enableExecutionDirection()
+
+
 class App(QWidget):
 	ChangedPositions = {}
 
-	def __init__(self):
-		super().__init__()
+	def __init__(self,parent):
+		super(App,self).__init__(parent)
 		self.title = 'PyQt5 table - pythonspot.com'
 		self.left = 0
 		self.top = 0
@@ -27,29 +80,27 @@ class App(QWidget):
 		self.setWindowTitle(self.title)
 		self.setGeometry(self.left, self.top, self.width, self.height)
 
-		self.llenaDiccionario()
 		self.createTable()
 		self.crearLista()
 		self.crearListaDeRegistros()
 
+		self.pila = []
+		vbox = QBoxLayout(3)
+
+		for x in range(251):
+			self.pila.append(QLabel())
+			label = self.pila[x]
+			vbox.addWidget(label)
+		######LINEAS PARA EL FONDO DE PILA
+		fondoPILA = self.pila[0]
+		fondoPILA.setText("FONDO")
+		fondoPILA.setStyleSheet("QLabel { color: green}")
+		#################################
 		button = QPushButton('Trazo', self)
-		button.pressed.connect(self.prueba)
+		button.pressed.connect(self.desensambladoTrazo)
 
-		#creamos
 		self.button2 = QPushButton('Paso a Paso', self)
-		self.button2.pressed.connect(self.PonerPasoPaso)
-
-		#Dirección de Ejecución
-		containerAdress = QWidget()
-		self.textbox = QLineEdit(self)
-		self.textbox.setInputMask(">HHHH")
-		self.textbox.setText("0000")
-		addressLabel = QLabel()
-		addressLabel.setText("Dir. Ejecución")
-		self.box1 = QBoxLayout(2)
-		self.box1.addWidget(addressLabel)
-		self.box1.addWidget(self.textbox)
-		containerAdress.setLayout(self.box1)
+		self.button2.pressed.connect(self.ponerPasoAPaso)
 
 		container = QWidget()
 		self.ly = QBoxLayout(0)
@@ -60,19 +111,10 @@ class App(QWidget):
 		win = QWidget()
 		area = QScrollArea()
 
-		self.pila = []
-		vbox = QBoxLayout(3)
-
-		for x in range(251):
-			self.pila.append(QLabel())
-			label = self.pila[x]
-			vbox.addWidget(label)
-
 		win.setLayout(vbox)
 		area.setWidget(win)
-		area.verticalScrollBar().setValue(5000)
-
-		GRIDPRINCIPAL = QGridLayout()
+		area.verticalScrollBar().setValue(area.verticalScrollBar().maximum())
+		self.GRIDPRINCIPAL = QGridLayout()
 		GRID2 = QGridLayout()
 		contenedor = QWidget()
 
@@ -88,37 +130,22 @@ class App(QWidget):
 
 		GRID2.addWidget(self.win2, 0,0)
 		contenedor.setLayout(GRID2)
-		GRIDPRINCIPAL.setColumnStretch(0,4)
-		GRIDPRINCIPAL.setColumnStretch(1,1)
-		GRIDPRINCIPAL.setColumnStretch(2,4)
-		GRIDPRINCIPAL.addWidget(self.tableWidget, 0, 0)
-		GRIDPRINCIPAL.addWidget(codigo, 0, 2)
-		GRIDPRINCIPAL.addWidget(container, 2, 0)
-		GRIDPRINCIPAL.addWidget(contenedor, 3, 0)
-		GRIDPRINCIPAL.addWidget(area, 0, 1)
-		GRIDPRINCIPAL.addWidget(containerAdress,2,1)
+		self.GRIDPRINCIPAL.setColumnStretch(0,4)
+		self.GRIDPRINCIPAL.setColumnStretch(1,1)
+		self.GRIDPRINCIPAL.setColumnStretch(2,4)
+		self.GRIDPRINCIPAL.addWidget(self.tableWidget, 0, 0)
+		self.GRIDPRINCIPAL.addWidget(codigo, 0, 2)
+		self.GRIDPRINCIPAL.addWidget(container, 2, 0)
+		self.GRIDPRINCIPAL.addWidget(contenedor, 3, 0)
+		self.GRIDPRINCIPAL.addWidget(area, 0, 1)
+		#self.GRIDPRINCIPAL.addWidget(containerAdress,2,1)
 
-		self.textbox.textEdited.connect(self.asignarPC)
-		#self.textbox.editingFinished.connect(self.asignarPC)
-		self.setLayout(GRIDPRINCIPAL)
-		self.show()
-
-	def PonerPasoPaso(self):
-		button3 = QPushButton('Salir Paso a Paso', self)
-		self.button2.setText("Siguiente Intrucción")
-		self.button2.pressed.connect(self.desensambladoPasoAPaso(self.table))
-		self.ly.addWidget(button3)
-		self.button3.presed.connect(self.salirPasoPaso)
-
+		self.setLayout(self.GRIDPRINCIPAL)
 
 	def crearListaDeRegistros(self):
 		self.win2 = QWidget()
 
 		self.registros1 = []
-
-
-
-
 		vbox = QGridLayout()
 		x = 0
 		registros = ["B","C","D","E","H","L","A","F","SP","IX","IY","PC","IFF1","IFF2","I","R","C\'","D\'","E\'","H\'","L\'","A\'"]
@@ -151,6 +178,47 @@ class App(QWidget):
 		vbox.addWidget(self.registros1[20],4,0)
 		vbox.addWidget(self.registros1[21],4,1)
 		self.win2.setLayout(vbox)
+
+	def ponerPasoAPaso(self):
+		self.button2.deleteLater()
+		self.button2 = QPushButton('Siguiente Instrucción', self)
+		self.button2.pressed.connect(self.desensambladoPasoAPaso)
+		self.button3 = QPushButton('Salir paso a paso', self)
+		self.button3.pressed.connect(self.salirPasoPaso)
+		self.ly.addWidget(self.button2)
+		self.ly.addWidget(self.button3)
+		self.disableExecutionDirection()
+
+	def salirPasoPaso(self,):
+		self.button3.deleteLater()
+		self.button2.deleteLater()
+		self.button2 = QPushButton('Paso a paso', self)
+		self.button2.pressed.connect(self.ponerPasoAPaso)
+		self.ly.addWidget(self.button2)
+		self.enableExecutionDirection()
+
+	def asignarPC(self):
+		val = self.textbox.text()
+		if len(val) == 4:
+			z.PC = val
+			self.registros1[11].setText("PC = " + z.PC)
+
+	def enableExecutionDirection(self):
+		self.containerAdress = QWidget()
+		self.textbox = QLineEdit(self)
+		self.textbox.setInputMask(">HHHH")
+		self.textbox.setText("0000")
+		addressLabel = QLabel()
+		addressLabel.setText("Dir. Ejecución")
+		self.box1 = QBoxLayout(2)
+		self.box1.addWidget(addressLabel)
+		self.box1.addWidget(self.textbox)
+		self.containerAdress.setLayout(self.box1)
+		self.GRIDPRINCIPAL.addWidget(self.containerAdress,2,1)
+		self.textbox.textEdited.connect(self.asignarPC)
+
+	def disableExecutionDirection(self):
+		self.containerAdress.deleteLater()
 
 
 	def createTable(self):
@@ -201,24 +269,6 @@ class App(QWidget):
 				content = content.upper()
 			z.mem.cambiarContenido(content, key)
 
-	@pyqtSlot()
-	def asignarPC(self):
-		val = self.textbox.text()
-		if len(val) == 4:
-			z.PC = val
-
-		print(z.PC)
-
-	#@pyqtSlot()
-	#def asignarPC(self):
-	#	z.PC = self.textbox.text()
-	#	print(z.PC)
-
-	def prueba(self):
-		self.llenaDiccionario()
-		self.cargaMemoria("0000")
-		self.desensambladoTrazo("0000", self.table)
-
 	def llenaDiccionario(self):
 		file = open('tablaCompleta.txt','r')
 		self.table = {}
@@ -226,14 +276,9 @@ class App(QWidget):
 			line = line.replace('\n','').split('|')
 			self.table[line[1]] = line[0].split(':')
 
-	def salirPasoPaso(self,):
-		self.button2.setText("Paso a Paso")
-		self.button2.pressed.connect(self.PonerPasoPaso)
-
-
 # Funcion para cargar el contenido del archivo en la memoria
-	def cargaMemoria(self, dirCarga):
-		code = open('FAC.txt', 'r')
+	def cargaMemoria(self, dirCarga, archivo):
+		code = open(archivo, 'r')
 		for line in code.readlines():
 			line = line.replace(':','').replace("\n", "")
 			# El desensamble termina al encontrar la ultima linea del codigo objeto
@@ -267,10 +312,9 @@ class App(QWidget):
 			else:
 				return z.mem
 
-	def desensambladoTrazo(self, dirEjec, table):
+	def desensambladoTrazo(self):
 		inst = ""
-		z.PC = dirEjec
-		j = int(dirEjec,16)
+		j = int(z.PC,16)
 		act = ''
 		while(inst != 'HALT'):
 			act += z.mem.obtenerContenido(funciones.tohex(j,8))
@@ -279,17 +323,17 @@ class App(QWidget):
 				des = line[j]
 				act += 'V'+line[j+1]
 				j += 2
-				inst = table.get(act)[0]
+				inst = self.table.get(act)[0]
 				inst = inst.replace('V', des+'H')
-				long = int(table.get(act)[1])
+				long = int(self.table.get(act)[1])
 				z.PC = hex(j-4+long)[2:].zfill(4).upper()
 				self.ejecutar(act, inst)
 				j = int(z.PC,16)
 				act = ''
-			elif act in table:
+			elif act in self.table:
 				tem = act
-				inst = table.get(act)[0]
-				long = int(table.get(act)[1])
+				inst = self.table.get(act)[0]
+				long = int(self.table.get(act)[1])
 				longact = len(act)/2
 				# Bandera para saber cuando poner la H en los numeros al desensamblar
 				flagh = 0
@@ -312,7 +356,7 @@ class App(QWidget):
 				act = ''
 				tem = ''
 
-	def desensambladoPasoAPaso(self, table):
+	def desensambladoPasoAPaso(self):
 		inst = ""
 		j = int(z.PC,16)
 		act = ''
@@ -322,17 +366,18 @@ class App(QWidget):
 			des = line[j]
 			act += 'V'+line[j+1]
 			j += 2
-			inst = table.get(act)[0]
+			inst = self.table.get(act)[0]
 			inst = inst.replace('V', des+'H')
-			long = int(table.get(act)[1])
+			long = int(self.table.get(act)[1])
 			z.PC = hex(j-4+long)[2:].zfill(4).upper()
 			self.ejecutar(act, inst)
 			j = int(z.PC,16)
 			act = ''
-		elif act in table:
+			print(z.PC, act, inst)
+		elif act in self.table:
 			tem = act
-			inst = table.get(act)[0]
-			long = int(table.get(act)[1])
+			inst = self.table.get(act)[0]
+			long = int(self.table.get(act)[1])
 			longact = len(act)/2
 			# Bandera para saber cuando poner la H en los numeros al desensamblar
 			flagh = 0
@@ -350,10 +395,14 @@ class App(QWidget):
 					if flagh == 1: inst = inst.replace('W', act)
 					else: inst = inst.replace('W', act+'H')
 			z.PC = hex(j)[2:].zfill(4).upper()
+			print(z.PC, tem, inst)
 			self.ejecutar(inst)
 			j = int(z.PC,16)
 			act = ''
 			tem = ''
+		if (inst == "HALT"):
+			while(z.mem.obtenerContenido(z.PC)!= "00"):
+				z.PC = funciones.tohex(int(z.PC,16) +1, 16)
 
 	def ejecutar(self, instrucciones):
 		registros = ["B","C","D","E","H","L","A","F","SP","IX","IY","PC","IFF1","IFF2","I","R","C_","D_","E_","H_","L_","A_"]
@@ -405,5 +454,6 @@ class App(QWidget):
 
 if __name__ == '__main__':
 	app = QApplication(sys.argv)
-	ex = App()
+	ex = ventanaPrincipal()
+	ex.show()
 	sys.exit(app.exec_())
