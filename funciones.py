@@ -11,6 +11,6 @@ def hextodec(num):
 
 # Funcion que obtiene el valor de checksum de la linea a desensamblar
 def compDos(N):
-  n = len(bin(N)[2:])
-  c = hex((2 ** n) - N)[2:].zfill(2)
-  return c[len(c)-2:].upper()
+	n = len(bin(N)[2:])
+	c = hex((2 ** n) - N)[2:].zfill(2)
+	return c[len(c)-2:].upper()

@@ -12,7 +12,7 @@ class Z80:
 	L = "00"
 	A = "00"
 	F = "00"
-	SP = "10000"
+	SP = "0000"
 	IX = "0000"
 	IY = "0000"
 	PC = "0000"
@@ -30,6 +30,8 @@ class Z80:
 	A_ = "00"
 	F_ = "00"
 	mem = memoria.Memoria()
+	time = 0
+	frec = 3580000
 
 	# Metodo para mandar llamar a otro de los metodos del procesador mediante el nombre de la operacion a realizar
 	# Si no hay operandos, se manda una cadena vacia
@@ -39,14 +41,14 @@ class Z80:
 		lista = ["JP", "JR", "CALL", "RET"]
 		if (len(opr) == 0):
 			if name in lista:
-				flag = getattr(object, name)("")	
+				flag = getattr(object, name)("")
 			else:
 				flag = getattr(object, name)()
 			return flag
 		if(name in lista):
 			flag = getattr(object, name)(opr)
 			return flag
-		opr = opr.split(",")	
+		opr = opr.split(",")
 		if (len(opr) == 1):
 			flag = getattr(object, name)(opr[0])
 			return flag
@@ -107,7 +109,7 @@ class Z80:
 		else:
 			Z80.changeFlag(2,'0')
 
-    # Mandar el resultado en decimal para comprobar sobrepasamiento
+	# Mandar el resultado en decimal para comprobar sobrepasamiento
 	@staticmethod
 	def overflow(res):
 		if res in range(-128, 128):
@@ -301,13 +303,13 @@ class Z80:
 			Z80.overflow(a)
 			setattr(Z80, op, funciones.tohex(a,8))
 			""" >>>>> Z = S = H = DE ACUERDO A LA OPERACION, N = 0, P/V = SOBREPASAMIENTO <<<<< """
-		
+
 		# Incrementar valor de SP, IX o IY
 		elif ((op == "SP") or (op == "IX") or (op == "IY")):
 			a = funciones.tohex(int(Z80.obtenerSS(op), 16) + 1, 16)
 			setattr(Z80, op, a)
 			""" >>>>> No hay banderas afectadas <<<<< """
-		
+
 		# Incrementar (HL), (IX+d), (IY+d)
 		elif (op.find('(')!=-1):
 			a = Z80.obtenerS(op)
@@ -325,7 +327,7 @@ class Z80:
 				flag = Z80.mem.cambiarContenido(a, getattr(Z80, op[1:3]))
 				return flag
 			""" >>>>> Z = S = H = DE ACUERDO A LA OPERACION, N = 0, P/V = SOBREPASAMIENTO <<<<< """
-		
+
 		# Incrementar BC, DE, HL
 		else:
 			a = funciones.tohex(int(Z80.obtenerSS(op), 16) + 1, 16)
@@ -349,13 +351,13 @@ class Z80:
 			a = funciones.tohex(a, 8)
 			setattr(Z80, op, a)
 			""" >>>>> Z = S = H = DE ACUERDO A LA OPERACION, N = 1, P/V = SOBREPASAMIENTO <<<<< """
-		
+
 		# Decrementar valor de SP, IX o IY
 		elif ((op == "SP") or (op == "IX") or (op == "IY")):
 			a = funciones.tohex(int(Z80.obtenerSS(op), 16) - 1, 16)
 			setattr(Z80, op, a)
 			""" >>>>> No hay banderas afectadas <<<<< """
-		
+
 		# Decrementar (HL), (IX+d), (IY+d)
 		elif (op.find('(')!=-1):
 			a = Z80.obtenerS(op)
@@ -374,7 +376,7 @@ class Z80:
 				flag = Z80.mem.cambiarContenido(a, getattr(Z80, op[1:3]))
 				return flag
 			""" >>>>> Z = S = H = DE ACUERDO A LA OPERACION, N = 1, P/V = SOBREPASAMIENTO <<<<< """
-		
+
 		# Incrementar BC, DE, HL
 		else:
 			a = funciones.tohex(int(Z80.obtenerSS(op), 16) - 1, 16)
@@ -459,7 +461,7 @@ class Z80:
 	@staticmethod
 	def DAA():
 		cy = Z80.getFlagBit(0) # Obtiene bandera de acarreo
-		hc = Z80.getFlagBit(4)	# Obtiene bandera de medio acarreo
+		hc = Z80.getFlagBit(4)  # Obtiene bandera de medio acarreo
 
 		if ((cy == 0) and (hc == 0)):
 			if (int(Z80.A[0],16) in range(0, 10) and int(Z80.A[1],16) in range(0, 10)):
@@ -535,7 +537,7 @@ class Z80:
 
 	@staticmethod
 	def obtenerCont(op2):
-		if (op2.find('IX+')!=-1 or op2.find('IX+')!=-1):
+		if (op2.find('IX+')!=-1 or op2.find('IY+')!=-1):
 			op2 = op2.replace("(","").replace(")","").replace("H","").split("+")
 			reg = getattr(Z80, op2[0])
 			des = op2[1]
@@ -620,6 +622,10 @@ class Z80:
 	@staticmethod
 	def PUSH(arg):
 		Z80.SP = int(Z80.SP, 16)
+		####################
+		if Z80.SP == 0:
+			Z80.SP = 65536
+		#####################
 		if Z80.SP >= 65026 and Z80.SP <= 65536:
 			if arg == 'IX' or arg == 'IY':
 				arg = getattr(Z80, arg)
@@ -636,11 +642,16 @@ class Z80:
 				Z80.SP = funciones.tohex(Z80.SP - 2, 16)
 				flag1.update(flag2)
 				return flag1
-		else: print('ERROR: Memoria llena')
+		else:
+			Z80.SP = funciones.tohex(Z80.SP, 16)
 
 	@staticmethod
 	def POP(arg):
 		Z80.SP = int(Z80.SP, 16)
+		#######################
+		if Z80.SP == 0:
+			Z80.SP = 65536
+		##############
 		if Z80.SP >= 65024 and Z80.SP < 65535:
 			if arg == 'IX':
 				Z80.IX = Z80.mem.obtenerContenido(hex(Z80.SP + 1)[2:]) + Z80.mem.obtenerContenido(hex(Z80.SP)[2:])
@@ -660,10 +671,9 @@ class Z80:
 				flag1 = Z80.mem.cambiarContenido('00', hex(Z80.SP + 1))
 				flag2 = Z80.mem.cambiarContenido('00', hex(Z80.SP))
 				Z80.SP = hex(Z80.SP + 2)[2:].zfill(4).upper()
-			if (Z80.SP == "0000"):
-				Z80.SP = "10000"
 			return flag1
-		else: print('ERROR: Memoria Vacía')
+		else:
+			Z80.SP = funciones.tohex(Z80.SP, 16)
 
 	@staticmethod
 	def intercambio(arg1, arg2):
@@ -750,11 +760,13 @@ class Z80:
 	def LDIR():
 		Z80.changeFlag(1,'0')
 		Z80.changeFlag(4,'0')
-		flag = {} 
+		flag = {}
 		c = int(Z80.B + Z80.C, 16)
 		while c != 0:
+			Z80.time += 21
 			flag.update(Z80.transferencia('+'))
 			c -= 1
+		Z80.time += 16
 		return flag
 
 	@staticmethod
@@ -771,8 +783,10 @@ class Z80:
 		c = int(Z80.B + Z80.C, 16)
 		flag = {}
 		while c != 0:
+			Z80.time += 21
 			flag.update(Z80.transferencia('-'))
 			c -= 1
+		Z80.time += 16
 		return flag
 
 	@staticmethod
@@ -817,7 +831,9 @@ class Z80:
 			if b == False:
 				break
 			else:
+				Z80.time += 21
 				c -= 1
+		Z80.time += 16
 
 	@staticmethod
 	def CPD():
@@ -831,7 +847,9 @@ class Z80:
 			if b == False:
 				break
 			else:
+				Z80.time += 21
 				c -= 1
+		Z80.time += 16
 
 	@staticmethod
 	def ADD(op1, op2):
@@ -899,9 +917,8 @@ class Z80:
 		Z80.sign(s)
 		Z80.changeFlag(1,'1')
 		Z80.A = funciones.tohex(s,8)
-#PITIN
 
-#Este metodo es el encargado de hacer los brincos por medio del PC, se manda a llamar 
+#Este metodo es el encargado de hacer los brincos por medio del PC, se manda a llamar
 #desde los metodos JP y JR.
 	@staticmethod
 	def hexToDecJR(cadenahexa):
@@ -910,7 +927,7 @@ class Z80:
 			numDec = numDec - 256
 		nuevoPC = int(Z80.PC,16) + numDec
 		Z80.PC = str(funciones.tohex(nuevoPC,16))
-		return 
+		return
 
 # Metodo para dar un brinco absoluto en el programa
 # Actualiza el PC a la dirección en hexadecimal recibida.
@@ -964,7 +981,7 @@ class Z80:
 					Z80.PC = cadena[2:6]
 
 # Metodo para dar un brinco relativo al valor del PC con un
-# alcance en el rango de e = <-127,129> desde la dirección 
+# alcance en el rango de e = <-127,129> desde la dirección
 # del primer código de operación de esta instrucción.
 # Recibe el valor del Brinco un numero hexadecimal en comple
 # mento a dos y lo suma al valor actual del PC.
@@ -978,41 +995,51 @@ class Z80:
 		# Salto condicional relativo
 			if(cadena.find("C") == 0):
 				if Z80.getFlagBit(0) == 0:
+					Z80.time += 7
 					return
 				else:
+					Z80.time += 12
 					Z80.hexToDecJR(cadena[2:4])
 			elif(cadena.find("C") == 1):
 				if Z80.getFlagBit(0) == 1:
+					Z80.time += 7
 					return
 				else:
+					Z80.time += 12
 					Z80.hexToDecJR(cadena[3:5])
 			elif(cadena.find("Z") == 0):
 				if Z80.getFlagBit(6) == 0:
+					Z80.time += 7
 					return
 				else:
+					Z80.time += 12
 					Z80.hexToDecJR(cadena[2:4])
 			elif(cadena.find("Z") == 1):
 				if Z80.getFlagBit(6) == 1:
+					Z80.time += 1
 					return
 				else:
+					Z80.time += 12
 					Z80.hexToDecJR(cadena[3:5])
 
 # Metodo DJNZ que da un brinco relativo un número total de
-# veces del valor en el registro B, se decremenata en uno 
-# antes de cada Brinco. 
+# veces del valor en el registro B, se decremenata en uno
+# antes de cada Brinco.
 
 	@staticmethod
 	def DJNZ(cadena):
 		Z80.B = str(int(Z80.B)-1)
 		if (int(Z80.B) != 0):
+			Z80.time += 13
 			Z80.hexToDecJR(cadena[0:2])
 		else:
+			Z80.time += 8
 			return
 
-# Metodo que manda a llamar o no al metodo C4LL (CALL) 
-# Si se trata de una llamada incondicional le pasa el 
+# Metodo que manda a llamar o no al metodo C4LL (CALL)
+# Si se trata de una llamada incondicional le pasa el
 # valor que recibe de entrada para actualizar el PC
-# Si se trata de una llamada condicional, verifica la 
+# Si se trata de una llamada condicional, verifica la
 # condición y si la cumple llama a C4LL para actualizar
 # el PC.
 
@@ -1023,43 +1050,59 @@ class Z80:
 		else:
 			if(cadena.find("C") == 0):
 				if Z80.getFlagBit(0) == 0:
+					Z80.time += 10
 					return
 				else:
+					Z80.time += 17
 					Z80.C4LL(cadena[2:6])
 			elif(cadena.find("C") == 1):
 				if Z80.getFlagBit(0) == 1:
+					Z80.time += 10
 					return
 				else:
+					Z80.time += 17
 					Z80.C4LL(cadena[3:7])
 			elif(cadena.find("Z") == 0):
 				if Z80.getFlagBit(6) == 0:
+					Z80.time += 10
 					return
 				else:
+					Z80.time += 17
 					Z80.C4LL(cadena[2:6])
 			elif(cadena.find("Z") == 1):
 				if Z80.getFlagBit(6) == 1:
+					Z80.time += 10
 					return
 				else:
+					Z80.time += 17
 					Z80.C4LL(cadena[3:7])
 			elif(cadena.find("O") == 1):
 				if Z80.getFlagBit(2) == 1:
+					Z80.time += 10
 					return
 				else:
+					Z80.time += 17
 					Z80.C4LL(cadena[3:7])
 			elif(cadena.find("E") == 1):
 				if Z80.getFlagBit(2) == 0:
+					Z80.time += 10
 					return
 				else:
+					Z80.time += 17
 					Z80.C4LL(cadena[3:7])
 			elif(cadena.find("P") == 0):
 				if Z80.getFlagBit(7) == 1:
+					Z80.time += 10
 					return
 				else:
+					Z80.time += 17
 					Z80.C4LL(cadena[2:6])
 			elif(cadena.find("M") == 0):
 				if Z80.getFlagBit(7) == 0:
+					Z80.time += 10
 					return
 				else:
+					Z80.time += 17
 					Z80.C4LL(cadena[2:6])
 
 # Función que almacena el valor del PC en la pila, para despues ser recuperado
@@ -1068,6 +1111,10 @@ class Z80:
 	@staticmethod
 	def C4LL(cadena):
 		Z80.SP = int(Z80.SP,16)
+		##################
+		if Z80.SP == 0:
+			Z80.SP = 65536
+		##################
 		valorPC = Z80.PC
 		if (Z80.SP > 65026 and Z80.SP <= 65536):
 			flag1 = Z80.mem.cambiarContenido(valorPC[0:2],funciones.tohex(Z80.SP-1,16))
@@ -1076,8 +1123,8 @@ class Z80:
 			Z80.PC = cadena.replace("H","")
 			flag1.update(flag2)
 			return flag1
-		else: 
-			print("Pila llena")
+		else:
+			Z80.SP = funciones.tohex(Z80.SP, 16)
 
 	@staticmethod
 	def RET(cadena):
@@ -1086,43 +1133,59 @@ class Z80:
 		else:
 			if(cadena.find("C") == 0):
 				if Z80.getFlagBit(0) == 0:
+					Z80.time += 5
 					return
 				else:
+					Z80.time += 11
 					Z80.R3T()
 			elif(cadena.find("C") == 1):
 				if Z80.getFlagBit(0) == 1:
+					Z80.time += 5
 					return
 				else:
+					Z80.time += 11
 					Z80.R3T()
 			elif(cadena.find("Z") == 0):
 				if Z80.getFlagBit(6) == 0:
+					Z80.time += 5
 					return
 				else:
+					Z80.time += 11
 					Z80.R3T()
 			elif(cadena.find("Z") == 1):
 				if Z80.getFlagBit(6) == 1:
+					Z80.time += 5
 					return
 				else:
+					Z80.time += 11
 					Z80.R3T()
 			elif(cadena.find("O") == 1):
 				if Z80.getFlagBit(2) == 1:
+					Z80.time += 5
 					return
 				else:
+					Z80.time += 11
 					Z80.R3T()
 			elif(cadena.find("E") == 1):
 				if Z80.getFlagBit(2) == 0:
+					Z80.time += 5
 					return
 				else:
+					Z80.time += 11
 					Z80.R3T()
 			elif(cadena.find("P") == 0):
 				if Z80.getFlagBit(7) == 1:
+					Z80.time += 5
 					return
 				else:
+					Z80.time += 11
 					Z80.R3T()
 			elif(cadena.find("M") == 0):
 				if Z80.getFlagBit(7) == 0:
+					Z80.time += 5
 					return
 				else:
+					Z80.time += 11
 					Z80.R3T()
 
 # Regresa el PC almacenado en la pila al PC y pone ceros ('00')
@@ -1131,23 +1194,29 @@ class Z80:
 	@staticmethod
 	def R3T():
 		Z80.SP = int(Z80.SP,16)
+		###########################
+		if Z80.SP == 0:
+			Z80.SP = 65536
+		###########################
 		if (Z80.SP >= 65024 and Z80.SP < 65535):
 			Z80.PC = Z80.mem.obtenerContenido(funciones.tohex(Z80.SP+1,16))+Z80.mem.obtenerContenido(funciones.tohex(Z80.SP,16))
 			Z80.SP = str(funciones.tohex(Z80.SP + 2,16))
-			if (Z80.SP == "0000"):
-				Z80.SP = "10000"
 		else:
-			print("Pila Vacia")
+			Z80.SP = funciones.tohex(Z80.SP, 16)
 
 # Metodo que utiliza el modo de direccionamienro de pagina cero
-# util ya que con un solo byte te permite dirigirte a varias 
-# posiciones de la pagina cero de la memoria donde usualmente 
+# util ya que con un solo byte te permite dirigirte a varias
+# posiciones de la pagina cero de la memoria donde usualmente
 # suelen estar las subrutinas más utilizadas.
 
 	@staticmethod
 	def RST(cadena):
 		cadena = cadena[0:2]
 		Z80.SP = int(Z80.SP,16)
+		#########################
+		if Z80.SP == 0:
+			Z80.SP = 65536
+		##########################
 		valorPC = Z80.PC
 		if (Z80.SP > 65024 and Z80.SP <= 65536):
 			fla1 = Z80.mem.cambiarContenido(valorPC[0:2], funciones.tohex(Z80.SP-1,16))
@@ -1156,10 +1225,9 @@ class Z80:
 			Z80.PC = '00'+cadena
 			flag1.update(flag2)
 			return flag1
-		else: 
-			print("Pila llena")
+		else:
+			Z80.SP = funciones.tohex(Z80, 16)
 
-#BETOTE
 	@staticmethod
 	def checkRegister(o, name, register):
 		if(register[0] == "("):
@@ -1168,11 +1236,11 @@ class Z80:
 		getattr(o, name + "4")(register)
 
 	@staticmethod
-	def checkRegister2(o, name, parameter_list):
-		if(parameter_list[1][0] == "("):
-			getattr(o, name + "8")(parameter_list)
+	def checkRegister2(o, name, bitIndex, register):
+		if(register[0] == "("):
+			getattr(o, name + "8")(bitIndex,register)
 			return
-		getattr(o, name + "4")(parameter_list)
+		getattr(o, name + "4")(bitIndex,register)
 
 	@staticmethod
 	def RLCA():
@@ -1219,7 +1287,6 @@ class Z80:
 
 	@staticmethod
 	def RLC(register):
-		register = register[0]
 		Z80.checkRegister(Z80, "RLC", register)
 
 	#The contents of register r are rotated left 1 bit position. The contents of bit 7 are copied to
@@ -1241,12 +1308,11 @@ class Z80:
 		#nuevo contenido de la memoria en hexadecimal
 		content = Z80.binToHex(content)
 		#set el nuevo contenido de la localidad de memoria
-		flag = Z80.memo.cambiarContenido(content, memoryAddress)
+		flag = Z80.mem.cambiarContenido(content, memoryAddress)
 		return flag
 
 	@staticmethod
 	def RL(register):
-		register = register[0]
 		#mandando a llamar a RL4 o RL8 dependiendo
 		#de cuantos bytes son los registros
 		#para registros de 1 bytes es RL4
@@ -1279,7 +1345,6 @@ class Z80:
 ## hasta aqui bien
 	@staticmethod
 	def RRC(register):
-		register = register[0]
 		#mandando a llamar a RRC4 o RRC8 dependiendo
 		#de cuantos bytes son los registros
 		#para registros de 1 bytes es RRC4
@@ -1311,7 +1376,6 @@ class Z80:
 
 	@staticmethod
 	def RR(register):
-		register = register[0]
 		#mandando a llamar a RR4 o RR8 dependiendo
 		#de cuantos bytes son los registros
 		#para registros de 1 bytes es RR4
@@ -1343,7 +1407,6 @@ class Z80:
 
 	@staticmethod
 	def SLA(register):
-		register = register[0]
 		Z80.checkRegister(Z80, "SLA", register)
 
 	@staticmethod
@@ -1368,7 +1431,6 @@ class Z80:
 
 	@staticmethod
 	def SRA(register):
-		register = register[0]
 		Z80.checkRegister(Z80, "SRA", register)
 
 	@staticmethod
@@ -1405,7 +1467,6 @@ class Z80:
 
 	@staticmethod
 	def SRL(register):
-		register = register[0]
 		Z80.checkRegister(Z80, "SRL", register)
 
 	@staticmethod
@@ -1473,16 +1534,14 @@ class Z80:
 		return flag
 
 	@staticmethod
-	def BIT(parameter_list):
-		Z80.checkRegister2(Z80, "BIT", parameter_list)
+	def BIT(bitIndex, register):
+		Z80.checkRegister2(Z80, "BIT", bitIndex, register)
 
 	@staticmethod
-	def BIT4(parameter_list):
-		bitIndex = int(parameter_list[0])
-		register = parameter_list[1]
+	def BIT4(bitIndex, register):
 		register = getattr(Z80, register)
 		registerInBIN = Z80.hexToBin(register)
-		if registerInBIN[7 - bitIndex] != "0":
+		if registerInBIN[7 - int(bitIndex)] != "0":
 			Z80.changeFlag(6, "0")
 		else:
 			Z80.changeFlag(6, "1")
@@ -1490,15 +1549,14 @@ class Z80:
 		Z80.changeFlag(1, "0")
 		#cambiando la bandera H
 		Z80.changeFlag(4, "1")
+		Z80.changeFlag(int(bitIndex), registerInBIN[7 - int(bitIndex)])
 
 	@staticmethod
-	def BIT8(parameter_list):
-		bitIndex = int(parameter_list[0])
-		register = parameter_list[1]
+	def BIT8(bitIndex, register):
 		memoryAddress = Library.isHL_IX_IY(register)
 		content = memoria.Memoria.obtenerContenido(memoryAddress)
 		content = Z80.hexToBin(content)
-		if content[7 - bitIndex] != "0":
+		if content[7 - int(bitIndex)] != "0":
 			Z80.changeFlag(6, "0")
 		else:
 			Z80.changeFlag(6, "1")
@@ -1506,59 +1564,53 @@ class Z80:
 		Z80.changeFlag(1, "0")
 		#cambiando la bandera H
 		Z80.changeFlag(4, "1")
+		Z80.changeFlag(int(bitIndex), content[7 - int(bitIndex)])
+
 
 	@staticmethod
-	def SET(parameter_list):
-		Z80.checkRegister2(Z80, "SET", parameter_list)
+	def SET(bitIndex, register):
+		Z80.checkRegister2(Z80, "SET", bitIndex, register)
 
 	@staticmethod
-	def SET4(parameter_list):
-		bitIndex = int(parameter_list[0])
-		register = parameter_list[1]
+	def SET4(bitIndex, register):
 		numberInHEX = getattr(Z80, register)
 		registerInBIN = Z80.hexToBin(numberInHEX)
 		registerInBIN = list(registerInBIN)
-		registerInBIN[7 - bitIndex] = "1"
+		registerInBIN[7 - int(bitIndex)] = "1"
 		registerInBIN = "".join(registerInBIN)
 		setattr(Z80, register, Z80.binToHex(registerInBIN))
 
 	@staticmethod
-	def SET8(parameter_list):
-		bitIndex = int(parameter_list[0])
-		register = parameter_list[1]
+	def SET8(bitIndex, register):
 		memoryAddress = Library.isHL_IX_IY(register)
 		content = memoria.Memoria.obtenerContenido(memoryAddress)
 		content = Z80.hexToBin(content)
 		content = list(content)
-		content[7 - bitIndex] = "1"
+		content[7 - int(bitIndex)] = "1"
 		content = "".join(content)
 		flag = Z80.mem.cambiarContenido(Z80.binToHex(content), memoryAddress)
 		return flag
 
 	@staticmethod
-	def RES(parameter_list):
-		Z80.checkRegister2(Z80, "RES", parameter_list)
+	def RES(bitIndex, register):
+		Z80.checkRegister2(Z80, "RES", bitIndex, register)
 
 	@staticmethod
-	def RES4(parameter_list):
-		bitIndex = int(parameter_list[0])
-		register = parameter_list[1]
+	def RES4(bitIndex, register):
 		numberInHEX = getattr(Z80, register)
 		registerInBIN = Z80.hexToBin(numberInHEX)
 		registerInBIN = list(registerInBIN)
-		registerInBIN[7 - bitIndex] = "0"
+		registerInBIN[7 - int(bitIndex)] = "0"
 		registerInBIN = "".join(registerInBIN)
 		setattr(Z80, register, Z80.binToHex(registerInBIN))
 
 	@staticmethod
-	def RES8(parameter_list):
-		bitIndex = int(parameter_list[0])
-		register = parameter_list[1]
+	def RES8(bitIndex, register):
 		memoryAddress = Library.isHL_IX_IY(register)
 		content = memoria.Memoria.obtenerContenido(memoryAddress)
 		content = Z80.hexToBin(content)
 		content = list(content)
-		content[7 - bitIndex] = "0"
+		content[7 - int(bitIndex)] = "0"
 		content = "".join(content)
 		flag = Z80.mem.cambiarContenido(Z80.binToHex(content), memoryAddress)
 		return flag
